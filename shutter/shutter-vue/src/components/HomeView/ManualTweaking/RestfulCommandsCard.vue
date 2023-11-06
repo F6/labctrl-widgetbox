@@ -83,10 +83,12 @@ async function shutterCommand(shutter_name: string, action: string) {
     "POST",
     JSON.stringify({ action: action })
   );
-  shutterStatusStore.shutterStatusState.shutters.set(
-    result.shutter_name,
-    result.state
-  );
+  if (result) {
+    shutterStatusStore.shutterStatusState.shutters.set(
+      result.shutter_name,
+      result.state
+    );
+  }
 }
 
 const onShutter1TurnON = async () => await shutterCommand("1", "ON");

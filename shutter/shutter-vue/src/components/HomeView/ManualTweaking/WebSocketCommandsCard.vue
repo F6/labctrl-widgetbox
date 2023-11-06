@@ -196,7 +196,7 @@ function shutterCommand(wsid: string, command: string) {
 
 function shutterResponseHandler(message: string) {
   const result = JSON.parse(message);
-  if (result.shutter_name) {
+  if (result) {
     shutterStatusStore.shutterStatusState.shutters.set(
       result.shutter_name,
       result.state
