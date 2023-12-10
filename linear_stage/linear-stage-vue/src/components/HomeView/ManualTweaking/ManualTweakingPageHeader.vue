@@ -74,7 +74,7 @@
           {{ connStatusState.grpc }}
         </div>
       </a-descriptions-item> -->
-      <a-descriptions-item label="Logical Position">
+      <a-descriptions-item label="Position">
         {{ linearStageStatusStore.position_string }}
       </a-descriptions-item>
       <a-descriptions-item label="Absolute Position">
@@ -83,8 +83,14 @@
       <a-descriptions-item label="Velocity">
         {{ linearStageStatusStore.velocity_string }}
       </a-descriptions-item>
-      <a-descriptions-item label="Acceleraiton">
+      <a-descriptions-item label="Physical Velocity">
+        {{ linearStageStatusStore.physical_velocity_string }}
+      </a-descriptions-item>
+      <a-descriptions-item label="Acceleration">
         {{ linearStageStatusStore.acceleration_string }}
+      </a-descriptions-item>
+      <a-descriptions-item label="Physical Acceleration">
+        {{ linearStageStatusStore.physical_acceleration_string }}
       </a-descriptions-item>
     </a-descriptions>
   </a-page-header>
@@ -138,22 +144,28 @@ async function onSyncStatus() {
         response.unit;
     }
   });
-  await callRESTfulAPI("velocity", "GET", null).then((response) => {
+  await callRESTfulAPI("parameter/velocity", "GET", null).then((response) => {
     if (response) {
       linearStageStatusStore.linearStageStatusState.velocity.value =
         response.value;
-      linearStageStatusStore.linearStageStatusState.velocity.unit =
-        response.unit;
+      linearStageStatusStore.linearStageStatusState.physical_velocity.value =
+        response.value * response.unit_step.value;
+      linearStageStatusStore.linearStageStatusState.physical_velocity.unit =
+        response.unit_step.unit;
     }
   });
-  await callRESTfulAPI("acceleration", "GET", null).then((response) => {
-    if (response) {
-      linearStageStatusStore.linearStageStatusState.acceleration.value =
-        response.value;
-      linearStageStatusStore.linearStageStatusState.acceleration.unit =
-        response.unit;
+  await callRESTfulAPI("parameter/acceleration", "GET", null).then(
+    (response) => {
+      if (response) {
+        linearStageStatusStore.linearStageStatusState.acceleration.value =
+          response.value;
+        linearStageStatusStore.linearStageStatusState.physical_acceleration.value =
+          response.value * response.unit_step.value;
+        linearStageStatusStore.linearStageStatusState.physical_acceleration.unit =
+          response.unit_step.unit;
+      }
     }
-  });
+  );
 }
 </script>
 

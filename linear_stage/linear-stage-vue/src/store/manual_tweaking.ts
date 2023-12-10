@@ -11,7 +11,9 @@ export interface LinearStageStatusState {
   position: LinearStageQuantity;
   absolute_position: LinearStageQuantity;
   velocity: LinearStageQuantity;
+  physical_velocity: LinearStageQuantity;
   acceleration: LinearStageQuantity;
+  physical_acceleration: LinearStageQuantity;
 }
 
 // This store is for current stage status, which is synchronized with remote via RESTful or WebSocket
@@ -21,8 +23,10 @@ export const useLinearStageStatusStore = defineStore(
     const linearStageStatusState: UnwrapRef<LinearStageStatusState> = reactive({
       position: { value: null },
       absolute_position: { value: null, unit: "mm" },
-      velocity: { value: null, unit: "mm/s" },
-      acceleration: { value: null, unit: "mm/(s^2)" },
+      velocity: { value: null },
+      physical_velocity: { value: null, unit: "mm/s" },
+      acceleration: { value: null },
+      physical_acceleration: { value: null, unit: "mm/(s^2)" },
     });
 
     const position_string = computed(() =>
@@ -40,12 +44,25 @@ export const useLinearStageStatusStore = defineStore(
     const velocity_string = computed(() =>
       linearStageStatusState.velocity.value === null
         ? "Unknown"
-        : `${linearStageStatusState.velocity.value} ${linearStageStatusState.velocity.unit}`
+        : `${linearStageStatusState.velocity.value}`
     );
+
+    const physical_velocity_string = computed(() =>
+      linearStageStatusState.physical_velocity.value === null
+        ? "Unknown"
+        : `${linearStageStatusState.physical_velocity.value} ${linearStageStatusState.physical_velocity.unit}`
+    );
+
     const acceleration_string = computed(() =>
       linearStageStatusState.acceleration.value === null
         ? "Unknown"
-        : `${linearStageStatusState.acceleration.value} ${linearStageStatusState.acceleration.unit}`
+        : `${linearStageStatusState.acceleration.value}`
+    );
+
+    const physical_acceleration_string = computed(() =>
+      linearStageStatusState.physical_acceleration.value === null
+        ? "Unknown"
+        : `${linearStageStatusState.physical_acceleration.value} ${linearStageStatusState.physical_acceleration.unit}`
     );
 
     return {
@@ -53,7 +70,9 @@ export const useLinearStageStatusStore = defineStore(
       position_string,
       absolute_position_string,
       velocity_string,
+      physical_velocity_string,
       acceleration_string,
+      physical_acceleration_string,
     };
   }
 );
@@ -62,7 +81,9 @@ export interface LinearStageInputState {
   position: LinearStageQuantity;
   absolute_position: LinearStageQuantity;
   velocity: LinearStageQuantity;
+  physical_velocity: LinearStageQuantity;
   acceleration: LinearStageQuantity;
+  physical_acceleration: LinearStageQuantity;
 }
 
 // This store is for inputs that operates the stage.
@@ -73,8 +94,10 @@ export const useLinearStageInputStore = defineStore(
       useStorage("linear-stage-widgetbox-linear-stage-input-local-storage", {
         position: { value: 0 },
         absolute_position: { value: 0, unit: "mm" },
-        velocity: { value: 100, unit: "mm/s" },
-        acceleration: { value: 100, unit: "mm/(s^2)" },
+        velocity: { value: 100 },
+        physical_velocity: { value: 100, unit: "mm/s" },
+        acceleration: { value: 100 },
+        physical_acceleration: { value: 100, unit: "mm/(s^2)" },
       });
 
     return {

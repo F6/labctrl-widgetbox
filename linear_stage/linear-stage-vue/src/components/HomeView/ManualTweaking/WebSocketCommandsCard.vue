@@ -62,11 +62,23 @@
         <a-input-group compact>
           <a-input-number
             v-model:value="linearStageInputState.velocity.value"
+            style="width: calc(100% - 80px)"
+            placeholder="vel"
+          />
+          <a-button @click="onSetVelocity" type="primary" style="width: 80px">
+            Set
+          </a-button>
+        </a-input-group>
+      </a-form-item>
+      <a-form-item label="Physical Velocity">
+        <a-input-group compact>
+          <a-input-number
+            v-model:value="linearStageInputState.physical_velocity.value"
             style="width: calc(100% - 180px)"
             placeholder="vel"
           />
           <a-select
-            v-model:value="linearStageInputState.velocity.unit"
+            v-model:value="linearStageInputState.physical_velocity.unit"
             style="width: 100px"
           >
             <a-select-option value="m/s">m/s</a-select-option>
@@ -74,7 +86,11 @@
             <a-select-option value="um/s">um/s</a-select-option>
             <a-select-option value="nm/s">nm/s</a-select-option>
           </a-select>
-          <a-button @click="onSetVelocity" type="primary" style="width: 80px">
+          <a-button
+            @click="onSetPhysicalVelocity"
+            type="primary"
+            style="width: 80px"
+          >
             Set
           </a-button>
         </a-input-group>
@@ -83,11 +99,27 @@
         <a-input-group compact>
           <a-input-number
             v-model:value="linearStageInputState.acceleration.value"
+            style="width: calc(100% - 80px)"
+            placeholder="acc"
+          />
+          <a-button
+            @click="onSetAcceleration"
+            type="primary"
+            style="width: 80px"
+          >
+            Set
+          </a-button>
+        </a-input-group>
+      </a-form-item>
+      <a-form-item label="Physical Acceleration">
+        <a-input-group compact>
+          <a-input-number
+            v-model:value="linearStageInputState.physical_acceleration.value"
             style="width: calc(100% - 200px)"
             placeholder="acc"
           />
           <a-select
-            v-model:value="linearStageInputState.acceleration.unit"
+            v-model:value="linearStageInputState.physical_acceleration.unit"
             style="width: 120px"
           >
             <a-select-option value="m/(s^2)">m/(s^2)</a-select-option>
@@ -96,7 +128,7 @@
             <a-select-option value="nm/(s^2)">nm/(s^2)</a-select-option>
           </a-select>
           <a-button
-            @click="onSetAcceleration"
+            @click="onSetPhysicalAcceleration"
             type="primary"
             style="width: 80px"
           >
@@ -169,10 +201,20 @@ function connectDeviceWebsocket(
       on_close: function (this, ev) {
         console.log("websocket closed", ev);
         if (ev.wasClean) {
-          connStatusStore.connStatusState.websockets.set(
-            wsid,
-            WebSocketStatus.Ready
-          );
+          if (ev.code in [1002, 1008]) {
+            // 1002 Protocol Error: indicates protocol errors.
+            // 1008 Policy Violation: indicates errors for application, such as non-authorized.
+            connStatusStore.connStatusState.websockets.set(
+              wsid,
+              WebSocketStatus.Error
+            );
+          } else {
+            // 1005, 1000 and other status codes indicate normal disconnection.
+            connStatusStore.connStatusState.websockets.set(
+              wsid,
+              WebSocketStatus.Ready
+            );
+          }
         } else {
           console.log("Websocket closed but not clean!");
           connStatusStore.connStatusState.websockets.set(
@@ -214,28 +256,32 @@ function linearStageWebSocketCommand(wsid: string, command: object) {
 
 function linearStageWebSocketResponseHandler(message: string) {
   const result = JSON.parse(message);
-  console.log(result);
-  if (result?.position) {
+  if (result === null || result === undefined) {
+    return;
+  }
+  if ("position" in result) {
     linearStageStatusStore.linearStageStatusState.position.value =
-      result.position.value;
+      result.position;
   }
-  if (result?.absolute_position) {
-    linearStageStatusStore.linearStageStatusState.absolute_position.value =
-      result.absolute_position.value;
-    linearStageStatusStore.linearStageStatusState.absolute_position.unit =
-      result.absolute_position.unit;
-  }
-  if (result?.velocity) {
+  if ("velocity" in result) {
     linearStageStatusStore.linearStageStatusState.velocity.value =
-      result.velocity.value;
-    linearStageStatusStore.linearStageStatusState.velocity.unit =
-      result.velocity.unit;
+      result.velocity;
   }
-  if (result?.acceleration) {
+  if ("acceleration" in result) {
     linearStageStatusStore.linearStageStatusState.acceleration.value =
-      result.acceleration.value;
-    linearStageStatusStore.linearStageStatusState.acceleration.unit =
-      result.acceleration.unit;
+      result.acceleration;
+  }
+  if ("result" in result) {
+    if (result.result !== "OK") {
+      ant_message.warning(
+        `WebSocket command warning: ${result.result}, check server log for more info.`
+      );
+    }
+  }
+  if ("error" in result) {
+    ant_message.error(
+      `WebSocket command error: ${result.error}, check server log for more info.`
+    );
   }
 }
 
@@ -250,33 +296,48 @@ const onLinearStageWebsocketConnect = () =>
   );
 
 async function onSetPosition() {
-  const target_value =
-    linearStageInputStore.linearStageInputState.position.value;
+  const target_value = linearStageInputState.value.position.value;
   console.log("Moving linear stage to position: ", target_value);
   linearStageWebSocketCommand("websocket-linear-stage", {
-    position: { value: target_value },
+    position: target_value,
   });
 }
 
 async function onSetAbsolutePosition() {
-  const target = linearStageInputStore.linearStageInputState.absolute_position;
+  const target = linearStageInputState.value.absolute_position;
   console.log("Moving linear stage to absolute position: ", target);
   linearStageWebSocketCommand("websocket-linear-stage", {
-    absolute_position: target,
+    position: target,
   });
 }
 
 async function onSetVelocity() {
-  const target = linearStageInputStore.linearStageInputState.velocity;
+  const target = linearStageInputState.value.velocity.value;
   console.log("Setting linear stage velocity: ", target);
   linearStageWebSocketCommand("websocket-linear-stage", {
     velocity: target,
   });
 }
 
+async function onSetPhysicalVelocity() {
+  const target = linearStageInputState.value.physical_velocity;
+  console.log("Setting linear stage physical velocity: ", target);
+  linearStageWebSocketCommand("websocket-linear-stage", {
+    velocity: target,
+  });
+}
+
 async function onSetAcceleration() {
-  const target = linearStageInputStore.linearStageInputState.acceleration;
+  const target = linearStageInputState.value.acceleration.value;
   console.log("Setting linear stage acceleration: ", target);
+  linearStageWebSocketCommand("websocket-linear-stage", {
+    acceleration: target,
+  });
+}
+
+async function onSetPhysicalAcceleration() {
+  const target = linearStageInputState.value.physical_acceleration;
+  console.log("Setting linear stage physical acceleration: ", target);
   linearStageWebSocketCommand("websocket-linear-stage", {
     acceleration: target,
   });
